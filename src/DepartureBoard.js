@@ -29,7 +29,7 @@ function format_column_value(col, value) {
 }
 
 function Departures(props) {
-  return <table>
+  return <table className="departure-table">
     <thead><tr>{column_names.map(name => <th key={name}>{name}</th>)}</tr></thead>
     <tbody>
       {props.children.map(departure => <tr key={departure.train}>
