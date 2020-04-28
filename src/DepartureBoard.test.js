@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import {fireEvent, render} from '@testing-library/react';
 import { waitFor } from "@testing-library/dom";
 import DepartureBoard from './DepartureBoard';
 
@@ -8,7 +8,7 @@ class TestTransportationService {
   #departures;
 
   constructor(stations, departuresByStationKey) {
-    this.#stations = stations ?? [];
+    this.#stations = stations ?? {};
     this.#departures = departuresByStationKey ?? {};
 
     this.fetchStations = jest.fn(this.fetchStations);
@@ -44,7 +44,7 @@ test('fetches stations', async () => {
   };
   const transportationService = new TestTransportationService(stations);
 
-  const { getByText, getByDisplayValue } = render(<DepartureBoard transportationService={transportationService} />);
+  const { getByDisplayValue } = render(<DepartureBoard transportationService={transportationService} />);
 
   await waitFor(() => {
     expect(transportationService.fetchStations).toHaveBeenCalled();
@@ -67,5 +67,79 @@ test('fetches stations', async () => {
     expect(node.value).toBe(key);
     expect(node.text).toBe(name);
     expect(node.selected).toBe(isSelected);
+  });
+});
+
+test('displays departures', async () => {
+  const stations = {
+    "station1": "First Station",
+  };
+  const departures = {
+    "station1": [
+      {
+        carrier: "Trolley",
+        arrival_time: null,
+        departure_time: new Date(2020, 3, 28, 13, 28, 0, 0),
+        destination: "Next stop",
+        train: 101,
+        track: "R",
+        status: "Approaching",
+      },
+      {
+        carrier: "TrainCo",
+        arrival_time: new Date(2020, 3, 28, 15, 0, 0, 0),
+        departure_time: new Date(2020, 3, 28, 15, 0, 0, 0),
+        destination: "Anytown, USA",
+        train: 1234,
+        track: "Q",
+        status: "On time",
+      },
+      {
+        carrier: "TrainCo",
+        arrival_time: new Date(2020, 3, 28, 17, 0, 0, 0),
+        departure_time: new Date(2020, 3, 28, 17, 0, 0, 0),
+        destination: "This Place",
+        train: 567,
+        track: "Q",
+        status: "On time",
+      },
+    ],
+  }
+
+  const transportationService = new TestTransportationService(stations, departures);
+
+  const { getByText, getByDisplayValue } = render(<DepartureBoard transportationService={transportationService} />);
+
+  await waitFor(() => {
+    expect(transportationService.fetchStations).toHaveBeenCalled();
+  });
+
+  const stationSelect = getByDisplayValue(/select a station/i, {selector: 'select'});
+  expect(stationSelect).toBeEnabled();
+
+  stationSelect.value = 'station1';
+  fireEvent.change(stationSelect);
+
+  await waitFor(() => {
+    expect(transportationService.fetchDepartures).toHaveBeenCalled();
+  });
+
+  const destinationHeader = getByText(/destination/i, {selector: 'th'});
+  const departuresTable = destinationHeader.closest('table');
+
+  const expectedRows = [
+      // [carrier, time, destination, train, track, status]
+      ["Trolley", "1:28:00 PM", "Next stop", "101", "R", "Approaching"],
+      ["TrainCo", "3:00:00 PM", "Anytown, USA", "1234", "Q", "On time"],
+      ["TrainCo", "5:00:00 PM", "This Place", "567", "Q", "On time"],
+  ];
+
+  departuresTable.querySelector('tbody').childNodes.forEach((rowNode, idxRow) => {
+    const expectedRow = expectedRows[idxRow];
+    expect(rowNode).toBeInstanceOf(HTMLTableRowElement);
+    rowNode.childNodes.forEach((dataNode, idxData) => {
+      expect(dataNode).toBeInstanceOf(HTMLTableCellElement);
+      expect(dataNode.textContent).toBe(expectedRow[idxData]);
+    });
   });
 });
