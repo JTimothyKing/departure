@@ -1,12 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
+import DepartureBoard from './DepartureBoard';
 import * as serviceWorker from './serviceWorker';
+import FakeTransportationService from "./FakeTransportationService";
+
+const transportationService = new FakeTransportationService();
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <DepartureBoard transportationService={transportationService} />
   </React.StrictMode>,
   document.getElementById('root')
 );
